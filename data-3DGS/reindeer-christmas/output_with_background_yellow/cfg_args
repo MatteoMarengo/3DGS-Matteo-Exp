@@ -1,0 +1,1 @@
+Namespace(data_device='cuda', eval=False, images='images', model_path='/home/mmarengo/workspace/3DGS-Matteo-Exp/data-3DGS/reindeer-christmas/output_with_background_yellow', resolution=8, sh_degree=3, source_path='/home/mmarengo/workspace/3DGS-Matteo-Exp/data-3DGS/reindeer-christmas', white_background=False)

@@ -40,7 +40,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
     # bg_color is now yellow
-    bg_color = [1, 1, 0]
+    # bg_color is now orange
+    bg_color = [1, 0.5, 0]
+     
+    # bg_color = [1, 0, 0]
+    # bg_color = [1, 1, 0]
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
 
     iter_start = torch.cuda.Event(enable_timing = True)
@@ -87,9 +91,23 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg)
         image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
+        import matplotlib.pyplot as plt
+        import ipdb
+        breakpoint()
+        print("image shape: ", image.shape)
+        image = image.permute(1, 2, 0)
+        print("image shape: ", image.shape)
+        plt.imsave("image_orange.png", image.detach().cpu().numpy())
+
 
         # Loss
         gt_image = viewpoint_cam.original_image.cuda()
+        gt_image = gt_image.permute(1, 2, 0)
+        plt.imsave("gt_image.png", gt_image.detach().cpu().numpy())
+        exit() 
+
+
+
         Ll1 = l1_loss(image, gt_image)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
         loss.backward()

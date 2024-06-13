@@ -10,6 +10,7 @@
 #
 
 import os
+import numpy as np
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim
@@ -21,12 +22,20 @@ import uuid
 from tqdm import tqdm
 from utils.image_utils import psnr
 from argparse import ArgumentParser, Namespace
+from PIL import Image
 from arguments import ModelParams, PipelineParams, OptimizationParams
 try:
     from torch.utils.tensorboard import SummaryWriter
     TENSORBOARD_FOUND = True
 except ImportError:
     TENSORBOARD_FOUND = False
+
+def load_background_image(image_path):
+    # Load the image and convert it to a PyTorch tensor
+    image = Image.open(image_path).convert('RGB')
+    image_tensor = torch.from_numpy(np.array(image)).float() / 255.0
+    image_tensor = image_tensor.permute(2, 0, 1).unsqueeze(0)  # Convert to CxHxW and add batch dimension
+    return image_tensor
 
 def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from):
     first_iter = 0
@@ -38,14 +47,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         (model_params, first_iter) = torch.load(checkpoint)
         gaussians.restore(model_params, opt)
 
-    bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
-    # bg_color is now yellow
-    # bg_color is now orange
-    bg_color = [1, 0.5, 0]
-     
-    # bg_color = [1, 0, 0]
-    # bg_color = [1, 1, 0]
-    background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
+    background_image_path = "cyan_back.png"
+    background_image = load_background_image(background_image_path).cuda()
 
     iter_start = torch.cuda.Event(enable_timing = True)
     iter_end = torch.cuda.Event(enable_timing = True)
@@ -87,7 +90,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         if (iteration - 1) == debug_from:
             pipe.debug = True
 
-        bg = torch.rand((3), device="cuda") if opt.random_background else background
+        bg = background_image if opt.random_background else background_image
 
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg)
         image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
